@@ -18,6 +18,7 @@ in a worker thread can call engine tools without deadlocking.
 from __future__ import annotations
 
 import asyncio
+import concurrent.futures
 import logging
 from dataclasses import dataclass, field
 from typing import Any, Callable, Coroutine, Dict, List, Optional, Set
@@ -129,7 +130,7 @@ class ToolBridge:
                 self._records.append(record)
                 return result
 
-            except TimeoutError:
+            except (TimeoutError, concurrent.futures.TimeoutError):
                 record.error = (
                     f"Tool call '{name}' timed out after "
                     f"{self._config.timeout_sec}s"
