@@ -580,44 +580,51 @@ async def demo_neo4j_graph(skip: bool) -> None:
     try:
         section("Create entities representing tool usage")
         entity_web_search = GraphNode(
+            node_id="web_search",
+            scope_id=scope,
             name="web_search",
-            entity_type="Tool",
-            properties={"description": "Web search tool", "memory_type": "tool"},
+            labels=["Tool"],
+            attributes={"description": "Web search tool", "memory_type": "tool"},
         )
         entity_user = GraphNode(
+            node_id="demo-user",
+            scope_id=scope,
             name="demo-user",
-            entity_type="User",
-            properties={"role": "developer"},
+            labels=["User"],
+            attributes={"role": "developer"},
         )
-        await store.add_nodes([entity_web_search, entity_user], scope_id=scope)
+        await store.upsert_nodes(scope, [entity_web_search, entity_user])
         ok("Added Tool and User entity nodes")
 
         section("Create 'USES' edge")
         edge = GraphEdge(
-            source="demo-user",
-            target="web_search",
-            relation="USES",
-            properties={"frequency": "daily", "success_rate": "0.67"},
-            created_at=now,
+            edge_id="demo-user-uses-web_search",
+            scope_id=scope,
+            source_node_id="demo-user",
+            target_node_id="web_search",
+            edge_type="USES",
+            attributes={"frequency": "daily", "success_rate": "0.67"},
+            valid_at=now,
         )
-        await store.add_edges([edge], scope_id=scope)
+        await store.upsert_edges(scope, [edge])
         ok("Added USES edge from User to Tool")
 
         section("Create episode")
         ep = GraphEpisode(
-            name="tool_usage_session_1",
+            episode_id="tool_usage_session_1",
+            scope_id=scope,
             content="User executed web_search 3 times with 2 successes",
             created_at=now,
         )
-        await store.add_episode(ep, scope_id=scope)
+        await store.add_episodes(scope, [ep])
         ok("Added episode for tool usage session")
 
         section("Search graph for tool entities")
-        filters = GraphSearchFilters(entity_types=["Tool"])
-        results = await store.search(query="web_search", scope_id=scope, filters=filters, limit=5)
+        filters = GraphSearchFilters(node_labels=["Tool"])
+        results = await store.search(scope, query="web_search", scope="nodes", filters=filters, limit=5)
         info(f"Search returned {len(results.nodes)} nodes, {len(results.edges)} edges")
         for n in results.nodes:
-            info(f"  Node: {n.name} ({n.entity_type})")
+            info(f"  Node: {n.name} ({n.labels})")
         ok("Graph search returns tool entities")
 
     finally:

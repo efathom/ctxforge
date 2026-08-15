@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS memories (
     tags TEXT[] NOT NULL DEFAULT '{}',
     data JSONB NOT NULL DEFAULT '{}',
     embedding FLOAT[],
+    headline VARCHAR(150),
+    subtitle VARCHAR(300),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     expires_at TIMESTAMP WITH TIME ZONE DEFAULT NULL,

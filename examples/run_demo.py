@@ -253,6 +253,7 @@ class ContextEngineDemo:
                                 "api_key": engine_cfg.storage.memory.vector.embedding.api_key,
                                 "dimension": engine_cfg.storage.memory.vector.embedding.dimension,
                                 "batch_size": engine_cfg.storage.memory.vector.embedding.batch_size,
+                                "base_url": engine_cfg.storage.memory.vector.embedding.base_url,
                             },
                         },
                         "invalidation": {
