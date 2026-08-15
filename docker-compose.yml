@@ -1,0 +1,78 @@
+# CtxForge example infrastructure.
+#
+# Brings up the backing services the examples under ctxforge/examples use:
+#   - PostgreSQL   (persistent session/memory/expertise stores)
+#   - MySQL        (persistent session/memory/expertise stores)
+#   - Neo4j        (graph memory)
+#
+# ChromaDB is used in-process (persist_directory), and the embedding server
+# (TEI / Ollama / vLLM) is expected on LOCAL_EMBEDDING_BASE_URL
+# (default http://localhost:8080/v1).
+#
+# Credentials here match ctxforge/examples/.env.example.
+#
+#   docker compose up -d
+#   docker compose down          # stop containers (data volumes persist)
+#   docker compose down -v       # stop and delete volumes
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: ctxforge-postgres
+    environment:
+      POSTGRES_DB: ctxforge
+      POSTGRES_USER: ctxforge
+      POSTGRES_PASSWORD: password
+    ports:
+      - "5432:5432"
+    volumes:
+      - ctxforge_pgdata:/var/lib/postgresql/data
+      # Runs once on first init; the stores also create tables on demand.
+      - ./examples/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ctxforge -d ctxforge"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  mysql:
+    image: mysql:8.4
+    container_name: ctxforge-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: ctxforge
+      MYSQL_USER: ctxforge
+      MYSQL_PASSWORD: password
+    ports:
+      - "3306:3306"
+    volumes:
+      - ctxforge_mysqldata:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u root -prootpassword"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  neo4j:
+    image: neo4j:5-community
+    container_name: ctxforge-neo4j
+    environment:
+      NEO4J_AUTH: neo4j/password
+      NEO4J_server_memory_heap_initial__size: 256m
+      NEO4J_server_memory_heap_max__size: 512m
+      NEO4J_server_memory_pagecache_size: 256m
+    ports:
+      - "7474:7474"   # HTTP browser
+      - "7687:7687"   # Bolt
+    volumes:
+      - ctxforge_neo4jdata:/data
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:7474 || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+volumes:
+  ctxforge_pgdata:
+  ctxforge_mysqldata:
+  ctxforge_neo4jdata:

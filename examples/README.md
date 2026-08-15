@@ -89,6 +89,26 @@ Settings are loaded in this order (later overrides earlier):
 3. Environment variables (`CTXFORGE_*` prefix)
 4. Direct environment variables (`OPENAI_API_KEY`, etc.)
 
+## Full Setup (with Docker Compose)
+
+The fastest way to bring up all backing services (PostgreSQL, MySQL, Neo4j) is the
+provided Docker Compose file at the repo root:
+
+```bash
+# From the repo root (ctxforge/)
+docker compose up -d
+```
+
+This starts:
+- PostgreSQL on `localhost:5432` (db/user/pass: `ctxforge`/`ctxforge`/`password`), schema from `examples/init.sql`
+- MySQL on `localhost:3306` (db/user/pass: `ctxforge`/`ctxforge`/`password`)
+- Neo4j on `bolt://localhost:7687` (user/pass: `neo4j`/`password`)
+
+ChromaDB runs in-process (persist_directory), and the embedding server is expected at
+`LOCAL_EMBEDDING_BASE_URL` (default `http://localhost:8080/v1`; run e.g. TEI on that port).
+
+Stop the containers with `docker compose down` (data volumes persist; use `down -v` to wipe them).
+
 ## Full Setup (with Local PostgreSQL)
 
 For production-like testing with PostgreSQL:
