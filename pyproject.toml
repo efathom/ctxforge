@@ -1,0 +1,188 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ctxforge"
+dynamic = ["version"]
+description = "A highly extensible and configurable context engine framework for LLM agents."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "ctxforge Team" }]
+keywords = ["llm", "agents", "context", "memory", "rag", "knowledge-graph"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+dependencies = [
+    "pydantic>=2.0.0",
+    "python-dateutil>=2.8.2",
+    "pyyaml>=6.0",
+    "aiofiles>=23.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=1.0.0"]
+anthropic = ["anthropic>=0.5.0"]
+redis = ["redis>=5.0.0"]
+postgres = ["asyncpg>=0.29.0"]
+mysql = ["aiomysql>=0.2.0"]
+pinecone = ["pinecone-client>=3.0.0"]
+chromadb = ["chromadb>=0.4.0"]
+weaviate = ["weaviate-client>=4.0.0"]
+huggingface = ["sentence-transformers>=2.0.0"]
+all = [
+    "openai>=1.0.0",
+    "anthropic>=0.5.0",
+    "redis>=5.0.0",
+    "asyncpg>=0.29.0",
+    "aiomysql>=0.2.0",
+    "pinecone-client>=3.0.0",
+    "chromadb>=0.4.0",
+    "weaviate-client>=4.0.0",
+    "sentence-transformers>=2.0.0",
+]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "mypy>=1.0.0",
+    "ruff>=0.4.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/efathom/ctxforge"
+Documentation = "https://github.com/efathom/ctxforge#readme"
+Issues = "https://github.com/efathom/ctxforge/issues"
+
+[project.scripts]
+ctxforge = "ctxforge.cli:main"
+
+[tool.setuptools]
+# Flat layout: the package ``ctxforge`` maps to the repository root.
+package-dir = { "ctxforge" = "." }
+packages = [
+    "ctxforge",
+    "ctxforge.compaction",
+    "ctxforge.compression",
+    "ctxforge.config",
+    "ctxforge.core",
+    "ctxforge.engine",
+    "ctxforge.engine.prompts",
+    "ctxforge.engine.services",
+    "ctxforge.expertise",
+    "ctxforge.expertise.learning",
+    "ctxforge.expertise.prompts",
+    "ctxforge.extraction",
+    "ctxforge.extraction.consolidation",
+    "ctxforge.graph",
+    "ctxforge.graph.communities",
+    "ctxforge.graph.extraction",
+    "ctxforge.graph.maintenance",
+    "ctxforge.graph.retrieval",
+    "ctxforge.graph.stores",
+    "ctxforge.llm",
+    "ctxforge.middleware",
+    "ctxforge.middleware.approval",
+    "ctxforge.middleware.audit",
+    "ctxforge.middleware.content",
+    "ctxforge.middleware.expertise",
+    "ctxforge.middleware.pii",
+    "ctxforge.middleware.ratelimit",
+    "ctxforge.prompts",
+    "ctxforge.protocols",
+    "ctxforge.retrieval",
+    "ctxforge.retrieval.filters",
+    "ctxforge.retrieval.indexers",
+    "ctxforge.retrieval.retrievers",
+    "ctxforge.retrieval.rerankers",
+    "ctxforge.storage",
+    "ctxforge.storage.memory",
+    "ctxforge.storage.mysql",
+    "ctxforge.storage.postgres",
+    "ctxforge.storage.redis",
+    "ctxforge.utils",
+    "ctxforge.vectorstores",
+    "ctxforge.visualization",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "ctxforge.__version__" }
+
+[tool.setuptools.package-data]
+ctxforge = ["py.typed"]
+
+[tool.black]
+line-length = 100
+target-version = ["py310", "py311", "py312"]
+
+[tool.isort]
+profile = "black"
+line_length = 100
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+extend-exclude = ["tests/plugin_fixtures"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B"]
+ignore = [
+    "E501",   # line too long (handled by formatter)
+    "E402",   # module-level import not at top (intentional lazy imports for optional deps)
+    "B008",   # function call in default arg (common pattern in this codebase)
+]
+
+[tool.mypy]
+python_version = "3.10"
+# The package uses a flat layout (the repo root *is* the ``ctxforge`` package).
+# ``mypy_path`` is resolved relative to this config file; ".." exposes the parent
+# directory so ``import ctxforge.*`` resolves to the repo root.
+mypy_path = [".."]
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+exclude = ["tests/", "examples/"]
+# High-signal checks (attr-defined, name-defined, abstract, func-returns-value)
+# remain enabled. The following are disabled because the codebase uses a
+# pervasively duck-typed / `Any`-heavy design where these produce low-signal
+# noise. Each is a candidate for follow-up hardening:
+#   - arg-type/assignment/call-arg/return-value: protocol variance + `Any`
+#   - union-attr: `Optional[X]` attribute access (loose Optional design)
+#   - misc: variance, "None not callable" false positives, lambda inference
+#   - var-annotated: missing type annotations on local variables
+#   - no-redef: deliberate variable reuse (e.g. graph/stores/neo4j.py)
+#   - override: async-generator vs coroutine protocol signatures
+disable_error_code = [
+    "arg-type",
+    "assignment",
+    "call-arg",
+    "misc",
+    "no-redef",
+    "override",
+    "return-value",
+    "union-attr",
+    "var-annotated",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::PendingDeprecationWarning",
+]

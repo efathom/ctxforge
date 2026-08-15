@@ -1,0 +1,53 @@
+# ctxforge Framework Requirements
+
+# Core dependencies
+pydantic>=2.0.0
+python-dateutil>=2.8.2
+
+# Optional: YAML configuration support
+pyyaml>=6.0
+
+# Optional: Async utilities
+aiofiles>=23.0.0
+
+# Optional: Environment variable loading
+python-dotenv>=1.0.0
+
+# Testing
+pytest>=7.0.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.0.0
+
+# Development
+black>=23.0.0
+isort>=5.12.0
+mypy>=1.0.0
+
+# Optional: LLM providers (install as needed)
+# pip install ctxforge[openai]
+openai>=1.0.0
+# pip install ctxforge[anthropic]
+# anthropic>=0.5.0
+
+# Optional: Storage backends (install as needed)
+# pip install ctxforge[redis]
+redis>=5.0.0
+# pip install ctxforge[postgres]
+asyncpg>=0.29.0
+# pip install ctxforge[mysql]
+aiomysql>=0.2.0
+
+# Optional: Vector stores (install as needed)
+# pip install ctxforge[pinecone]
+pinecone-client>=3.0.0
+# pip install ctxforge[chromadb]
+chromadb>=0.4.0
+# pip install ctxforge[weaviate]
+weaviate-client>=4.0.0
+# pip install ctxforge[qdrant]
+# qdrant-client>=1.6.0
+
+# Optional: Observability (install as needed)
+# opentelemetry-api>=1.20.0
+# opentelemetry-sdk>=1.20.0
+# prometheus-client>=0.17.0

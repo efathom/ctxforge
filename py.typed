@@ -1,0 +1,1 @@
+# py.typed marker so typed consumers (mypy/pyright) treat ctxforge as typed.
