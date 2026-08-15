@@ -73,7 +73,8 @@ async def test_local_embedding_empty_input(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_openai_embedding_base_url(monkeypatch):
-    import openai
+    import sys
+    import types
 
     captured = {}
 
@@ -81,7 +82,11 @@ async def test_openai_embedding_base_url(monkeypatch):
         def __init__(self, **kwargs):
             captured.update(kwargs)
 
-    monkeypatch.setattr(openai, "AsyncOpenAI", _FakeAsyncOpenAI)
+    # Inject a fake `openai` module so the test doesn't require the optional
+    # `openai` dependency to be installed.
+    fake_openai = types.ModuleType("openai")
+    fake_openai.AsyncOpenAI = _FakeAsyncOpenAI
+    monkeypatch.setitem(sys.modules, "openai", fake_openai)
 
     cfg = OpenAIConfig(
         api_key="sk-test",
