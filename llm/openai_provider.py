@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from ctxforge.engine.registry import registry
+from ctxforge.llm._openai_wire import normalize_tools, serialize_openai_message
 from ctxforge.protocols.llm import (
     ChatMessage,
     EmbeddingResponse,
@@ -22,7 +23,7 @@ from ctxforge.protocols.llm import (
 class OpenAIConfig:
     """
     OpenAI API configuration.
-    
+
     Attributes:
         api_key: OpenAI API key
         model: Chat model to use (default: gpt-4)
@@ -30,6 +31,7 @@ class OpenAIConfig:
         max_tokens: Maximum tokens to generate
         temperature: Sampling temperature
     """
+
     api_key: str
     model: str = "gpt-4"
     embedding_model: str = "text-embedding-3-small"
@@ -43,23 +45,23 @@ class OpenAIConfig:
 class OpenAILLMProvider(ILLMProvider):
     """
     OpenAI LLM provider for chat completions.
-    
+
     Example:
         from ctxforge.llm import OpenAILLMProvider, OpenAIConfig
-        
+
         config = OpenAIConfig(api_key="sk-...")
         provider = OpenAILLMProvider(config)
-        
+
         response = await provider.generate(
             prompt="What is Python?",
             system_prompt="You are a helpful assistant.",
         )
     """
-    
+
     def __init__(self, config: OpenAIConfig):
         """
         Initialize the provider.
-        
+
         Args:
             config: OpenAI configuration
         """
@@ -73,7 +75,7 @@ class OpenAILLMProvider(ILLMProvider):
     @property
     def default_model(self) -> str:
         return self._config.model
-    
+
     async def _get_client(self):
         """Lazy initialize the OpenAI client."""
         if self._client is None:
@@ -83,9 +85,11 @@ class OpenAILLMProvider(ILLMProvider):
                 raise ImportError(
                     "openai package is required. Install with: pip install openai"
                 ) from None
-            self._client = AsyncOpenAI(api_key=self._config.api_key, base_url=self._config.base_url or None)
+            self._client = AsyncOpenAI(
+                api_key=self._config.api_key, base_url=self._config.base_url or None
+            )
         return self._client
-    
+
     async def generate(
         self,
         prompt: str,
@@ -97,14 +101,14 @@ class OpenAILLMProvider(ILLMProvider):
     ) -> LLMResponse:
         """
         Generate a response using OpenAI's chat API.
-        
+
         Args:
             prompt: The user prompt
             system_prompt: Optional system instructions
             max_tokens: Maximum tokens to generate
             temperature: Sampling temperature
             **kwargs: Additional arguments passed to the API
-            
+
         Returns:
             LLMResponse with content and metadata
         """
@@ -117,7 +121,7 @@ class OpenAILLMProvider(ILLMProvider):
             stop=stop,
             **kwargs,
         )
-        
+
     async def chat(
         self,
         messages: List[ChatMessage],
@@ -130,31 +134,33 @@ class OpenAILLMProvider(ILLMProvider):
     ) -> LLMResponse:
         start = time.time()
         client = await self._get_client()
-        
-        openai_messages: List[Dict[str, Any]] = []
-        for m in messages:
-            payload: Dict[str, Any] = {"role": m.role, "content": m.content}
-            if m.name:
-                payload["name"] = m.name
-            if m.function_call:
-                payload["function_call"] = m.function_call
-            openai_messages.append(payload)
 
-        resp = await client.chat.completions.create(
-            model=model or self._config.model,
-            messages=openai_messages,
-            max_tokens=max_tokens or self._config.max_tokens,
-            temperature=temperature if temperature is not None else self._config.temperature,
-            stop=stop,
-            functions=functions,
-            **kwargs,
-        )
-        
+        openai_messages = [serialize_openai_message(m) for m in messages]
+        tools = normalize_tools(functions)
+
+        request_kwargs: Dict[str, Any] = {
+            "model": model or self._config.model,
+            "messages": openai_messages,
+            "max_tokens": max_tokens or self._config.max_tokens,
+            "temperature": temperature if temperature is not None else self._config.temperature,
+            "stop": stop,
+        }
+        if tools:
+            request_kwargs["tools"] = tools
+            request_kwargs["tool_choice"] = "auto"
+        request_kwargs.update(kwargs)
+
+        resp = await client.chat.completions.create(**request_kwargs)
+
         content = resp.choices[0].message.content or ""
         usage = getattr(resp, "usage", None)
         input_tokens = int(getattr(usage, "prompt_tokens", 0) or 0) if usage else 0
         output_tokens = int(getattr(usage, "completion_tokens", 0) or 0) if usage else 0
-        total_tokens = int(getattr(usage, "total_tokens", input_tokens + output_tokens) or 0) if usage else (input_tokens + output_tokens)
+        total_tokens = (
+            int(getattr(usage, "total_tokens", input_tokens + output_tokens) or 0)
+            if usage
+            else (input_tokens + output_tokens)
+        )
 
         return LLMResponse(
             content=content,
@@ -164,7 +170,7 @@ class OpenAILLMProvider(ILLMProvider):
             total_tokens=total_tokens,
             finish_reason=getattr(resp.choices[0], "finish_reason", None),
             latency_ms=(time.time() - start) * 1000,
-            raw_response=None,
+            raw_response=resp.model_dump(),
         )
 
     async def stream(
@@ -192,21 +198,21 @@ class OpenAILLMProvider(ILLMProvider):
 class OpenAIEmbeddingProvider(IEmbeddingProvider):
     """
     OpenAI Embedding provider.
-    
+
     Example:
         from ctxforge.llm import OpenAIEmbeddingProvider, OpenAIConfig
-        
+
         config = OpenAIConfig(api_key="sk-...")
         provider = OpenAIEmbeddingProvider(config)
-        
+
         embedding = await provider.embed("Hello world")
         embeddings = await provider.embed_batch(["Hello", "World"])
     """
-    
+
     def __init__(self, config: OpenAIConfig):
         """
         Initialize the provider.
-        
+
         Args:
             config: OpenAI configuration
         """
@@ -225,7 +231,7 @@ class OpenAIEmbeddingProvider(IEmbeddingProvider):
     @property
     def embedding_dimension(self) -> int:
         return self._dimensions or self._default_dimensions_for_model(self._config.embedding_model)
-    
+
     async def _get_client(self):
         """Lazy initialize the OpenAI client."""
         if self._client is None:
@@ -235,9 +241,11 @@ class OpenAIEmbeddingProvider(IEmbeddingProvider):
                 raise ImportError(
                     "openai package is required. Install with: pip install openai"
                 ) from None
-            self._client = AsyncOpenAI(api_key=self._config.api_key, base_url=self._config.base_url or None)
+            self._client = AsyncOpenAI(
+                api_key=self._config.api_key, base_url=self._config.base_url or None
+            )
         return self._client
-    
+
     async def embed(
         self,
         texts: List[str],
@@ -246,28 +254,30 @@ class OpenAIEmbeddingProvider(IEmbeddingProvider):
     ) -> EmbeddingResponse:
         """
         Generate embeddings for a list of texts.
-            
+
         Returns:
             EmbeddingResponse with embeddings and metadata
         """
         if not texts:
-            return EmbeddingResponse(embeddings=[], model=model or self.default_model, total_tokens=0, latency_ms=0.0)
-        
+            return EmbeddingResponse(
+                embeddings=[], model=model or self.default_model, total_tokens=0, latency_ms=0.0
+            )
+
         start = time.time()
         client = await self._get_client()
-        
+
         response = await client.embeddings.create(
             model=model or self._config.embedding_model,
             input=texts,
             **kwargs,
         )
-        
+
         # Sort by index to maintain order
         embeddings = sorted(response.data, key=lambda x: x.index)
-        
+
         if embeddings:
             self._dimensions = len(embeddings[0].embedding)
-        
+
         usage = getattr(response, "usage", None)
         total_tokens = int(getattr(usage, "total_tokens", 0) or 0) if usage else 0
 
@@ -299,4 +309,3 @@ class OpenAIEmbeddingProvider(IEmbeddingProvider):
 # Register providers for config-driven wiring
 registry.register_llm("openai")(OpenAILLMProvider)
 registry.register_embedding("openai")(OpenAIEmbeddingProvider)
-

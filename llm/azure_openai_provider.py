@@ -21,6 +21,7 @@ from pathlib import Path
 from typing import Any, AsyncIterator, Dict, List, Optional
 
 from ctxforge.engine.registry import registry
+from ctxforge.llm._openai_wire import normalize_tools, serialize_openai_message
 from ctxforge.protocols.llm import (
     ChatMessage,
     EmbeddingResponse,
@@ -118,9 +119,7 @@ def _create_async_http_client(cfg: AzureOpenAIConfig):
         raise ImportError("httpx is required for Azure OpenAI client customization.") from None
 
     ca_path = (
-        os.getenv("CA_BUNDLE_TRUST_CA_FILE")
-        or cfg.ca_bundle_path
-        or "/etc/lipki/public-ca.crt"
+        os.getenv("CA_BUNDLE_TRUST_CA_FILE") or cfg.ca_bundle_path or "/etc/lipki/public-ca.crt"
     )
 
     if ca_path and os.path.exists(ca_path):
@@ -153,7 +152,9 @@ class AzureOpenAILLMProvider(ILLMProvider):
             try:
                 from openai import AsyncAzureOpenAI
             except ImportError:
-                raise ImportError("openai package is required. Install with: pip install openai") from None
+                raise ImportError(
+                    "openai package is required. Install with: pip install openai"
+                ) from None
 
             http_client = _create_async_http_client(self._config)
             self._client = AsyncAzureOpenAI(
@@ -267,41 +268,46 @@ class AzureOpenAILLMProvider(ILLMProvider):
         start = time.time()
         client = await self._get_client()
 
-        openai_messages: List[Dict[str, Any]] = []
-        for m in messages:
-            payload: Dict[str, Any] = {"role": m.role, "content": m.content}
-            if m.name:
-                payload["name"] = m.name
-            if m.function_call:
-                payload["function_call"] = m.function_call
-            openai_messages.append(payload)
+        openai_messages = [serialize_openai_message(m) for m in messages]
+        tools = normalize_tools(functions)
 
         async def _do_request():
             resolved_max = max_tokens or self._config.max_tokens
-            return await client.chat.completions.create(
+            request_kwargs: Dict[str, Any] = {
                 # Azure expects deployment name here.
-                model=model or self._config.deployment,
-                messages=openai_messages,
-                max_completion_tokens=resolved_max,
-                temperature=temperature if temperature is not None else self._config.temperature,
-                stop=stop,
-                functions=functions,
-                **kwargs,
-            )
+                "model": model or self._config.deployment,
+                "messages": openai_messages,
+                "max_completion_tokens": resolved_max,
+                "temperature": temperature if temperature is not None else self._config.temperature,
+                "stop": stop,
+            }
+            if tools:
+                request_kwargs["tools"] = tools
+                request_kwargs["tool_choice"] = "auto"
+            request_kwargs.update(kwargs)
+            return await client.chat.completions.create(**request_kwargs)
 
         try:
-            resp = await self._with_retries(_do_request, op_name="azure_openai.chat.completions.create")
+            resp = await self._with_retries(
+                _do_request, op_name="azure_openai.chat.completions.create"
+            )
         except Exception as e:
             # Optional: capture the full request payload for postmortem/replay when 5xx happens.
             try:
-                capture_enabled = str(os.getenv("CTXFORGE_CAPTURE_LLM_FAILURES", "")).lower() in {"1", "true", "yes"}
+                capture_enabled = str(os.getenv("CTXFORGE_CAPTURE_LLM_FAILURES", "")).lower() in {
+                    "1",
+                    "true",
+                    "yes",
+                }
                 status_code = getattr(e, "status_code", None)
                 is_5xx = type(e).__name__ in {"InternalServerError", "ServiceUnavailableError"} or (
                     isinstance(status_code, int) and 500 <= status_code <= 599
                 )
                 if capture_enabled and is_5xx:
                     out_dir = os.getenv("CTXFORGE_LLM_FAILURE_DIR") or str(
-                        (Path(__file__).resolve().parents[1] / "examples" / "llm_failures").resolve()
+                        (
+                            Path(__file__).resolve().parents[1] / "examples" / "llm_failures"
+                        ).resolve()
                     )
                     os.makedirs(out_dir, exist_ok=True)
 
@@ -326,9 +332,12 @@ class AzureOpenAILLMProvider(ILLMProvider):
                             "model": model or self._config.deployment,
                             "messages": openai_messages,
                             "max_tokens": max_tokens or self._config.max_tokens,
-                            "temperature": temperature if temperature is not None else self._config.temperature,
+                            "temperature": (
+                                temperature if temperature is not None else self._config.temperature
+                            ),
                             "stop": stop,
-                            "functions": functions,
+                            "tools": tools,
+                            "tool_choice": "auto" if tools else None,
                         },
                     }
 
@@ -360,7 +369,7 @@ class AzureOpenAILLMProvider(ILLMProvider):
             total_tokens=total_tokens,
             finish_reason=getattr(resp.choices[0], "finish_reason", None),
             latency_ms=(time.time() - start) * 1000,
-            raw_response=None,
+            raw_response=resp.model_dump(),
         )
 
     async def stream(
@@ -404,14 +413,18 @@ class AzureOpenAIEmbeddingProvider(IEmbeddingProvider):
 
     @property
     def embedding_dimension(self) -> int:
-        return self._dimensions or self._default_dimensions_for_model(self._config.embedding_deployment)
+        return self._dimensions or self._default_dimensions_for_model(
+            self._config.embedding_deployment
+        )
 
     async def _get_client(self):
         if self._client is None:
             try:
                 from openai import AsyncAzureOpenAI
             except ImportError:
-                raise ImportError("openai package is required. Install with: pip install openai") from None
+                raise ImportError(
+                    "openai package is required. Install with: pip install openai"
+                ) from None
 
             http_client = _create_async_http_client(self._config)
             self._client = AsyncAzureOpenAI(
@@ -496,7 +509,9 @@ class AzureOpenAIEmbeddingProvider(IEmbeddingProvider):
         **kwargs: Any,
     ) -> EmbeddingResponse:
         if not texts:
-            return EmbeddingResponse(embeddings=[], model=model or self.default_model, total_tokens=0, latency_ms=0.0)
+            return EmbeddingResponse(
+                embeddings=[], model=model or self.default_model, total_tokens=0, latency_ms=0.0
+            )
 
         start = time.time()
         client = await self._get_client()
@@ -550,5 +565,3 @@ registry.register_embedding("azure")(AzureOpenAIEmbeddingProvider)
 # Common alias
 registry.register_llm("azure_openai")(AzureOpenAILLMProvider)
 registry.register_embedding("azure_openai")(AzureOpenAIEmbeddingProvider)
-
-
