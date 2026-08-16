@@ -35,6 +35,30 @@ class _FakeChatResponse:
     choices = [_FakeChoice()]
     usage = _FakeUsage()
 
+    def model_dump(self):
+        return {
+            "id": "chatcmpl-test",
+            "object": "chat.completion",
+            "created": 0,
+            "model": "openai/gpt-4o-mini",
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": "hello from fake",
+                        "tool_calls": None,
+                    },
+                    "finish_reason": "stop",
+                }
+            ],
+            "usage": {
+                "prompt_tokens": self.usage.prompt_tokens,
+                "completion_tokens": self.usage.completion_tokens,
+                "total_tokens": self.usage.total_tokens,
+            },
+        }
+
 
 class _FakeCompletions:
     async def create(self, **kwargs):
