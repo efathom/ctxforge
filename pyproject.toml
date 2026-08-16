@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=68", "wheel"]
+requires = ["setuptools>=84.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -21,42 +21,42 @@ classifiers = [
     "Topic :: Scientific/Engineering :: Artificial Intelligence",
 ]
 dependencies = [
-    "pydantic>=2.0.0",
-    "python-dateutil>=2.8.2",
-    "pyyaml>=6.0",
-    "aiofiles>=23.0.0",
-    "python-dotenv>=1.0.0",
+    "pydantic>=2.13.4",
+    "python-dateutil>=2.9.0.post0",
+    "pyyaml>=6.0.3",
+    "aiofiles>=25.1.0",
+    "python-dotenv>=1.2.2",
 ]
 
 [project.optional-dependencies]
-openai = ["openai>=1.0.0"]
-anthropic = ["anthropic>=0.5.0"]
-redis = ["redis>=5.0.0"]
-postgres = ["asyncpg>=0.29.0"]
-mysql = ["aiomysql>=0.2.0"]
-pinecone = ["pinecone-client>=3.0.0"]
-chromadb = ["chromadb>=0.4.0"]
-weaviate = ["weaviate-client>=4.0.0"]
-huggingface = ["sentence-transformers>=2.0.0"]
+openai = ["openai>=3.0.0"]
+anthropic = ["anthropic>=0.122.0"]
+redis = ["redis>=8.1.0"]
+postgres = ["asyncpg>=0.31.0"]
+mysql = ["aiomysql>=0.3.2"]
+pinecone = ["pinecone-client>=6.0.0"]
+chromadb = ["chromadb>=1.5.9"]
+weaviate = ["weaviate-client>=4.23.0"]
+huggingface = ["sentence-transformers>=5.7.0"]
 all = [
-    "openai>=1.0.0",
-    "anthropic>=0.5.0",
-    "redis>=5.0.0",
-    "asyncpg>=0.29.0",
-    "aiomysql>=0.2.0",
-    "pinecone-client>=3.0.0",
-    "chromadb>=0.4.0",
-    "weaviate-client>=4.0.0",
-    "sentence-transformers>=2.0.0",
+    "openai>=3.0.0",
+    "anthropic>=0.122.0",
+    "redis>=8.1.0",
+    "asyncpg>=0.31.0",
+    "aiomysql>=0.3.2",
+    "pinecone-client>=6.0.0",
+    "chromadb>=1.5.9",
+    "weaviate-client>=4.23.0",
+    "sentence-transformers>=5.7.0",
 ]
 dev = [
-    "pytest>=7.0.0",
-    "pytest-asyncio>=0.21.0",
-    "pytest-cov>=4.0.0",
-    "black>=23.0.0",
-    "isort>=5.12.0",
-    "mypy>=1.0.0",
-    "ruff>=0.4.0",
+    "pytest>=9.1.1",
+    "pytest-asyncio>=1.4.0",
+    "pytest-cov>=7.1.0",
+    "black>=26.5.1",
+    "isort>=8.0.1",
+    "mypy>=2.3.0",
+    "ruff>=0.16.3",
 ]
 
 [project.urls]
