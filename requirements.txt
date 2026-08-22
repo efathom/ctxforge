@@ -11,7 +11,7 @@ pyyaml>=6.0.3
 aiofiles>=25.1.0
 
 # Optional: Environment variable loading
-python-dotenv>=1.2.2
+python-dotenv>=1.2.3
 
 # Testing
 pytest>=9.1.1
@@ -21,11 +21,11 @@ pytest-cov>=7.1.0
 # Development
 black>=26.5.1
 isort>=8.0.1
-mypy>=2.3.0
+mypy>=2.3.1
 
 # Optional: LLM providers (install as needed)
 # pip install ctxforge[openai]
-openai>=3.0.0
+openai>=3.3.0
 # pip install ctxforge[anthropic]
 # anthropic>=0.5.0
 
