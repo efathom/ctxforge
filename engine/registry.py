@@ -44,6 +44,10 @@ class ComponentRegistry:
         self._middleware_factories: Dict[str, Any] = {}
         self._rerankers: Dict[str, Type] = {}
         self._assemblers: Dict[str, Type] = {}
+        self._vector_stores: Dict[str, Type] = {}
+        self._graph_stores: Dict[str, Type] = {}
+        self._tokenizers: Dict[str, Type] = {}
+        self._expertise_retrievers: Dict[str, Type] = {}
     
     # ==========================================================================
     # LLM Providers
@@ -342,6 +346,82 @@ class ComponentRegistry:
         return list(self._assemblers.keys())
     
     # ==========================================================================
+    # Vector Stores
+    # ==========================================================================
+    
+    def register_vector_store(self, name: str) -> Callable[[Type[T]], Type[T]]:
+        """Decorator to register a vector store backend."""
+        def decorator(cls: Type[T]) -> Type[T]:
+            self._vector_stores[name.lower()] = cls
+            return cls
+        return decorator
+    
+    def get_vector_store(self, name: str) -> Optional[Type]:
+        """Get a registered vector store backend by name."""
+        return self._vector_stores.get(name.lower())
+    
+    def list_vector_stores(self) -> list:
+        """List all registered vector store backends."""
+        return list(self._vector_stores.keys())
+    
+    # ==========================================================================
+    # Graph Stores
+    # ==========================================================================
+    
+    def register_graph_store(self, name: str) -> Callable[[Type[T]], Type[T]]:
+        """Decorator to register a graph store backend."""
+        def decorator(cls: Type[T]) -> Type[T]:
+            self._graph_stores[name.lower()] = cls
+            return cls
+        return decorator
+    
+    def get_graph_store(self, name: str) -> Optional[Type]:
+        """Get a registered graph store backend by name."""
+        return self._graph_stores.get(name.lower())
+    
+    def list_graph_stores(self) -> list:
+        """List all registered graph store backends."""
+        return list(self._graph_stores.keys())
+    
+    # ==========================================================================
+    # Tokenizers
+    # ==========================================================================
+    
+    def register_tokenizer(self, name: str) -> Callable[[Type[T]], Type[T]]:
+        """Decorator to register a tokenizer provider."""
+        def decorator(cls: Type[T]) -> Type[T]:
+            self._tokenizers[name.lower()] = cls
+            return cls
+        return decorator
+    
+    def get_tokenizer(self, name: str) -> Optional[Type]:
+        """Get a registered tokenizer provider by name."""
+        return self._tokenizers.get(name.lower())
+    
+    def list_tokenizers(self) -> list:
+        """List all registered tokenizer providers."""
+        return list(self._tokenizers.keys())
+    
+    # ==========================================================================
+    # Expertise Retrievers
+    # ==========================================================================
+    
+    def register_expertise_retriever(self, name: str) -> Callable[[Type[T]], Type[T]]:
+        """Decorator to register an expertise retriever."""
+        def decorator(cls: Type[T]) -> Type[T]:
+            self._expertise_retrievers[name.lower()] = cls
+            return cls
+        return decorator
+    
+    def get_expertise_retriever(self, name: str) -> Optional[Type]:
+        """Get a registered expertise retriever by name."""
+        return self._expertise_retrievers.get(name.lower())
+    
+    def list_expertise_retrievers(self) -> list:
+        """List all registered expertise retrievers."""
+        return list(self._expertise_retrievers.keys())
+    
+    # ==========================================================================
     # Utility Methods
     # ==========================================================================
     
@@ -382,8 +462,14 @@ class ComponentRegistry:
             "condenser": self._compactors,
             "extractor": self._extractors,
             "middleware": self._middleware,
+            "middleware_factory": self._middleware_factories,
             "reranker": self._rerankers,
             "assembler": self._assemblers,
+            "vector_store": self._vector_stores,
+            "vectorstore": self._vector_stores,  # alias
+            "graph_store": self._graph_stores,
+            "tokenizer": self._tokenizers,
+            "expertise_retriever": self._expertise_retrievers,
         }
         
         if component_type not in registries:
@@ -454,6 +540,12 @@ class ComponentRegistry:
             "middleware": self.get_middleware,
             "reranker": self.get_reranker,
             "assembler": self.get_assembler,
+            "vector_store": self.get_vector_store,
+            "vectorstore": self.get_vector_store,  # alias
+            "graph_store": self.get_graph_store,
+            "tokenizer": self.get_tokenizer,
+            "expertise_retriever": self.get_expertise_retriever,
+            "middleware_factory": self.get_middleware_factory,
         }
         
         getter = getters.get(component_type)
@@ -477,6 +569,10 @@ class ComponentRegistry:
         self._middleware_factories.clear()
         self._rerankers.clear()
         self._assemblers.clear()
+        self._vector_stores.clear()
+        self._graph_stores.clear()
+        self._tokenizers.clear()
+        self._expertise_retrievers.clear()
 
 
 # Global registry instance
