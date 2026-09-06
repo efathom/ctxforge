@@ -4,7 +4,7 @@ generic register_component/get_component paths (P0-ext)."""
 
 import pytest
 
-from engine.registry import ComponentRegistry
+from ctxforge.engine.registry import ComponentRegistry
 
 
 @pytest.fixture()
@@ -65,9 +65,9 @@ def test_generic_component_decorator_and_class_path(registry):
 
     assert registry.get_tokenizer("deco") is _D
     registry.register_component_class_path(
-        "graph_store", "cp", "engine.registry:ComponentRegistry"
+        "graph_store", "cp", "ctxforge.engine.registry:ComponentRegistry"
     )
-    from engine.registry import ComponentRegistry as CR
+    from ctxforge.engine.registry import ComponentRegistry as CR
 
     assert registry.get_graph_store("cp") is CR
 
