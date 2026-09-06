@@ -134,15 +134,28 @@ class EngineFactory:
             owned_resources.append(memory_store)
 
         # Tokenizer provider (for accurate context budgeting). Best-effort:
-        # - Use an explicit tokenizer provider if registered by plugins (future)
+        # - Use an explicitly configured tokenizer backend if registered
+        #   (config.tokenizer_backend, e.g. set by a plugin via EngineConfig)
         # - Otherwise adapt the configured LLM provider's counting methods.
         tokenizer_provider: Optional[ITokenizerProvider] = None
         try:
-            llm_for_tokenizer = self._create_llm_provider(config)
-            if llm_for_tokenizer is not None:
-                from ctxforge.llm.tokenizer_provider import LLMTokenizerProvider
+            tokenizer_backend = getattr(config, "tokenizer_backend", None)
+            tokenizer_cls = (
+                self._registry.get_tokenizer(tokenizer_backend)
+                if tokenizer_backend
+                else None
+            )
+            if tokenizer_cls is not None:
+                try:
+                    tokenizer_provider = tokenizer_cls()
+                except TypeError:
+                    tokenizer_provider = tokenizer_cls(config)
+            else:
+                llm_for_tokenizer = self._create_llm_provider(config)
+                if llm_for_tokenizer is not None:
+                    from ctxforge.llm.tokenizer_provider import LLMTokenizerProvider
 
-                tokenizer_provider = LLMTokenizerProvider(llm_for_tokenizer)
+                    tokenizer_provider = LLMTokenizerProvider(llm_for_tokenizer)
         except Exception:
             tokenizer_provider = None
 
@@ -272,9 +285,15 @@ class EngineFactory:
                 except Exception:
                     graph_ontology = GRAPH_ONTOLOGY
 
-            # Store
+            # Store: registry-registered backends first, builtins (memory/neo4j) after.
             backend = (getattr(config.graph.store, "backend", None) or "memory").lower()
-            if backend == "memory":
+            registered_graph_store = self._registry.get_graph_store(backend)
+            if registered_graph_store is not None:
+                try:
+                    graph_store = registered_graph_store(config.graph.store)
+                except TypeError:
+                    graph_store = registered_graph_store()
+            elif backend == "memory":
                 graph_store = InMemoryGraphStore()
             elif backend == "neo4j":
                 try:
@@ -1078,7 +1097,18 @@ class EngineFactory:
         conn = connection_string
 
         store: Optional[IVectorStore] = None
-        if backend == "chromadb":
+        registered_store_cls = self._registry.get_vector_store(backend)
+        if registered_store_cls is not None:
+            try:
+                store = registered_store_cls(
+                    index_name=index_name,
+                    connection_string=conn,
+                    embedding_dim=embedding_dim,
+                    extra_params=extra,
+                )
+            except TypeError:
+                store = registered_store_cls(conn or extra)
+        if backend == "chromadb" and store is None:
             from ctxforge.vectorstores.chroma_store import ChromaConfig, ChromaDBStore
             cfg = ChromaConfig(
                 collection_name=index_name,
@@ -1089,7 +1119,7 @@ class EngineFactory:
                 }},
             )
             store = ChromaDBStore(cfg)
-        elif backend == "pinecone":
+        elif backend == "pinecone" and store is None:
             from ctxforge.vectorstores.pinecone_store import PineconeConfig, PineconeStore
             api_key = extra.get("api_key") or ""
             if not api_key:
@@ -1103,7 +1133,7 @@ class EngineFactory:
                 create_index_if_missing=bool(extra.get("create_index_if_missing", False)),
             )
             store = PineconeStore(cfg)
-        elif backend == "weaviate":
+        elif backend == "weaviate" and store is None:
             from ctxforge.vectorstores.weaviate_store import WeaviateConfig, WeaviateStore
             cfg = WeaviateConfig(
                 url=conn or extra.get("url") or "http://localhost:8080",
