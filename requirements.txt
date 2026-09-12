@@ -25,7 +25,7 @@ mypy>=2.3.1
 
 # Optional: LLM providers (install as needed)
 # pip install ctxforge[openai]
-openai>=3.7.0
+openai>=3.10.0
 # pip install ctxforge[anthropic]
 # anthropic>=0.5.0
 
@@ -43,7 +43,7 @@ pinecone-client>=6.0.0
 # pip install ctxforge[chromadb]
 chromadb>=1.5.9
 # pip install ctxforge[weaviate]
-weaviate-client>=4.23.0
+weaviate-client>=4.23.1
 # pip install ctxforge[qdrant]
 # qdrant-client>=1.6.0
 
