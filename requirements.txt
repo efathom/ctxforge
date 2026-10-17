@@ -1,7 +1,7 @@
 # ctxforge Framework Requirements
 
 # Core dependencies
-pydantic>=2.13.5
+pydantic>=2.14.1
 python-dateutil>=2.9.0.post0
 
 # Optional: YAML configuration support
@@ -11,7 +11,7 @@ pyyaml>=6.0.3
 aiofiles>=25.1.0
 
 # Optional: Environment variable loading
-python-dotenv>=1.2.3
+python-dotenv>=1.2.4
 
 # Testing
 pytest>=9.1.1
@@ -19,13 +19,13 @@ pytest-asyncio>=1.4.0
 pytest-cov>=7.1.0
 
 # Development
-black>=26.5.1
-isort>=9.0.1
-mypy>=2.3.1
+black>=26.10.1
+isort>=9.0.2
+mypy>=2.4.0
 
 # Optional: LLM providers (install as needed)
 # pip install ctxforge[openai]
-openai>=3.7.0
+openai>=3.31.0
 # pip install ctxforge[anthropic]
 # anthropic>=0.5.0
 
@@ -33,7 +33,7 @@ openai>=3.7.0
 # pip install ctxforge[redis]
 redis>=8.1.0
 # pip install ctxforge[postgres]
-asyncpg>=0.31.0
+asyncpg>=0.32.0
 # pip install ctxforge[mysql]
 aiomysql>=0.3.2
 
@@ -43,7 +43,7 @@ pinecone-client>=6.0.0
 # pip install ctxforge[chromadb]
 chromadb>=1.5.9
 # pip install ctxforge[weaviate]
-weaviate-client>=4.23.0
+weaviate-client>=4.23.1
 # pip install ctxforge[qdrant]
 # qdrant-client>=1.6.0
 
